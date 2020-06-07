@@ -2,4 +2,4 @@
 
 *Based on https://github.com/toddmotto/ac-boilerplate*
 
-![Zozor](https://www.letscode.hu/img/letscodelogo190.png)
+![Hypocorn](https://avatars0.githubusercontent.com/u/21348530)
