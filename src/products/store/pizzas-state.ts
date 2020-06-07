@@ -1,7 +1,7 @@
 import { Injectable } from '@angular/core';
-import { of } from 'rxjs';
-import { tap } from 'rxjs/operators';
-import { Action, NgxsOnInit, Selector, State, StateContext } from '@ngxs/store';
+import { of, Subject } from 'rxjs';
+import { tap, takeUntil } from 'rxjs/operators';
+import { Action, NgxsOnInit, Selector, State, StateContext, Store } from '@ngxs/store';
 import { patch, updateItem } from '@ngxs/store/operators';
 import { Navigate } from '@ngxs/router-plugin';
 import { PizzasService, ToppingsService, AuthService } from '../services';
@@ -25,8 +25,12 @@ export class PizzasState implements NgxsOnInit {
   constructor(
     private pizzasService: PizzasService,
     private toppingsService: ToppingsService,
-    private authService: AuthService) {
+    private authService: AuthService,
+    private store: Store) {
   }
+
+  private pizzaWatchStopper = new Subject();
+  private listenPizzaCreationStopper = new Subject();
 
   @Selector()
   static pizzas(state: PizzasStateModel) {
@@ -52,14 +56,24 @@ export class PizzasState implements NgxsOnInit {
     this.authService.login('bob', 'dylan').subscribe();
   }
 
-  @Action(PizzasAction.LoadList)
-  loadPizzas(ctx: StateContext<PizzasStateModel>) {
-    ctx.patchState({ pizzasLoading: true, pizzas: [] });
-    return this.pizzasService.getPizzas().pipe(
-      tap(pizzas => {
-        ctx.patchState({ pizzas, pizzasLoading: false });
-      })
-    );
+  @Action(PizzasAction.WatchList)
+  watchPizzas(ctx: StateContext<PizzasStateModel>) {
+    this.pizzaWatchStopper.next();
+    this.pizzasService.getPizzas().pipe(
+      takeUntil(this.pizzaWatchStopper)
+    ).subscribe(pizzas => {
+      this.store.dispatch(new PizzasAction.PizzaLoaded(pizzas));
+    });
+  }
+
+  @Action(PizzasAction.PizzaLoaded)
+  pizzaLoaded(ctx: StateContext<PizzasStateModel>, action: PizzasAction.PizzaLoaded) {
+    ctx.patchState({ pizzas: action.pizzas , pizzasLoading: false });
+  }
+
+  @Action(PizzasAction.StopWatchingList)
+  stopWatchinPizzas(ctx: StateContext<PizzasStateModel>) {
+    this.pizzaWatchStopper.next();
   }
 
   @Action(PizzasAction.GetById)
@@ -139,4 +153,19 @@ export class PizzasState implements NgxsOnInit {
   editSelectedPizza({ patchState }, action: PizzasAction.Edit) {
     patchState({ selectedPizza: action.pizza });
   }
+
+  @Action(PizzasAction.ListenPizzaCreation)
+  listenPizzaCreation() {
+    this.pizzasService.listePizzaCreation().pipe(
+      takeUntil(this.listenPizzaCreationStopper)
+    ).subscribe(pizza => {
+      alert(`New pizza: ${pizza.name} (${pizza.id})`);
+    });
+  }
+
+  @Action(PizzasAction.StopListeningPizzaCreation)
+  stopListeningPizzaCreation() {
+    this.listenPizzaCreationStopper.next();
+  }
+
 }

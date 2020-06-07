@@ -2,8 +2,19 @@ import { Pizza } from '../models/pizza.model';
 
 export namespace PizzasAction {
 
-  export class LoadList {
-    static readonly type = '[Pizzas] Load the list of pizzas';
+  export class WatchList {
+    static readonly type = '[Pizzas] Watch the list of pizzas';
+  }
+
+  export class StopWatchingList {
+    static readonly type = '[Pizzas] Stop watch the list of pizzas';
+  }
+
+  export class PizzaLoaded {
+    static readonly type = '[Pizzas] Pizza loaded';
+
+    constructor(public pizzas: Pizza[]) {
+    }
   }
 
   export class Add {
@@ -45,4 +56,13 @@ export namespace PizzasAction {
 
     }
   }
+
+  export class ListenPizzaCreation {
+    static readonly type = '[Pizzas] ListenPizzaCreation';
+  }
+
+  export class StopListeningPizzaCreation {
+    static readonly type = '[Pizzas] StopListeningPizzaCreation';
+  }
+
 }

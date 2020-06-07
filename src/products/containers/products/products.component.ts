@@ -1,9 +1,7 @@
-import { Component, OnInit, ChangeDetectionStrategy } from '@angular/core';
+import { Component, OnInit, OnDestroy } from '@angular/core';
 
 import { Pizza } from '../../models/pizza.model';
-import { PizzasService } from '../../services/pizzas.service';
 
-import * as fromStore from '../../store';
 import { Store, Select } from '@ngxs/store';
 import { PizzasAction, PizzasState } from '../../store';
 import { Observable } from 'rxjs';
@@ -33,7 +31,7 @@ import { Observable } from 'rxjs';
     </div>
   `,
 })
-export class ProductsComponent implements OnInit {
+export class ProductsComponent implements OnInit, OnDestroy {
 
   @Select(PizzasState.pizzas)
   public pizzas$: Observable<Pizza[]>;
@@ -41,6 +39,13 @@ export class ProductsComponent implements OnInit {
   constructor(private store: Store) {}
 
   ngOnInit() {
-    this.store.dispatch(new PizzasAction.LoadList());
+    this.store.dispatch(new PizzasAction.WatchList());
+    this.store.dispatch(new PizzasAction.ListenPizzaCreation());
   }
+
+  ngOnDestroy() {
+    this.store.dispatch(new PizzasAction.StopWatchingList());
+    this.store.dispatch(new PizzasAction.StopListeningPizzaCreation());
+  }
+
 }

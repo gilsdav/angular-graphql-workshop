@@ -7,6 +7,7 @@ export const environment = {
   development: true,
   baseUrl: 'http://localhost:3000',
   baseGraphQLUrl: 'http://localhost:5000/graphql',
+  baseGraphQLUrlWS: 'ws://localhost:5000/graphql',
   authGraphQLUrl: 'http://localhost:5000/auth',
 };
 

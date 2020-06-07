@@ -1,13 +1,12 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
+import { Observable } from 'rxjs';
+import { map, filter, mapTo, debounceTime, skip } from 'rxjs/operators';
 
-import { Observable, throwError } from 'rxjs';
-import { catchError, map, filter, mapTo } from 'rxjs/operators';
-
-import { environment } from '../../environments/environment';
-import { Pizza } from '../models/pizza.model';
 import { Apollo } from 'apollo-angular';
 import gql from 'graphql-tag';
+
+import { Pizza } from '../models/pizza.model';
 import { Topping } from '../models/topping.model';
 
 @Injectable()
@@ -31,6 +30,7 @@ export class PizzasService {
       query
     }).valueChanges.pipe(
       filter(result => !!result.data),
+      debounceTime(100),
       map(result => {
         const pizzas: Pizza[] = result.data.pizzas;
         return pizzas;
@@ -124,4 +124,26 @@ export class PizzasService {
       }
     }).pipe(mapTo(null));
   }
+
+  listePizzaCreation(): Observable<Pizza> {
+    const query = gql`
+      subscription PizzaCreation {
+        pizzaAdded {
+          id,
+          name
+        }
+      }
+    `;
+    return this.apollo.subscribe<{ pizzaAdded: Pizza }>({
+      query,
+      fetchPolicy: 'no-cache'
+    }).pipe(
+      filter(result => !!result.data), // only if value
+      skip(1), // do not get repetition
+      map(response => {
+        return response.data.pizzaAdded;
+      })
+    );
+  }
+
 }

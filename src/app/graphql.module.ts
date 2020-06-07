@@ -4,50 +4,55 @@ import { HttpLinkModule, HttpLink, Options } from 'apollo-angular-link-http';
 import { InMemoryCache } from 'apollo-cache-inmemory';
 import { environment } from '../environments/environment';
 import { DefaultOptions } from 'apollo-client';
+// For Subscriptions
+import { WebSocketLink } from 'apollo-link-ws';
+import { split } from 'apollo-link';
+import { getMainDefinition } from 'apollo-utilities';
 
 const defaultOptions: DefaultOptions = {
   watchQuery: {
     fetchPolicy: 'cache-and-network',
     errorPolicy: 'ignore',
-    pollInterval: 0
+    pollInterval: 5000 // 0 = uniq call (same as "query")
   },
   query: {
     fetchPolicy: 'no-cache',
     errorPolicy: 'all'
-  },
+  }
 };
 
 const mainUri = environment.baseGraphQLUrl;
+const mainUriWs = environment.baseGraphQLUrlWS;
 const authUri = environment.authGraphQLUrl;
-// export function createApollo(httpLink: HttpLink) {
-//   return {
-//     link: httpLink.create({uri}),
-//     cache: new InMemoryCache(),
-//   };
-// }
 
 @NgModule({
   exports: [ApolloModule, HttpLinkModule]
-  // providers: [
-  //   {
-  //     provide: APOLLO_OPTIONS,
-  //     useFactory: createApollo,
-  //     deps: [HttpLink],
-  //   },
-  // ],
 })
 export class GraphQLModule {
   constructor(
     apollo: Apollo,
     httpLink: HttpLink
   ) {
+    // Pizza
     const options1: Options = { uri: mainUri, withCredentials: true };
+    const http = httpLink.create(options1);
+    const ws = new WebSocketLink({
+      uri: mainUriWs,
+      options: {
+        reconnect: true
+      }
+    });
+    const link = split(({ query }) => {
+      const { kind, operation }: any = getMainDefinition(query);
+      return kind === 'OperationDefinition' && operation === 'subscription';
+    }, ws, http);
     apollo.createDefault({
-      link: httpLink.create(options1),
+      link,
       cache: new InMemoryCache(),
       defaultOptions
     });
 
+    // Auth
     const options2: Options = { uri: authUri, withCredentials: true };
     apollo.createNamed('auth', {
       link: httpLink.create(options2),
